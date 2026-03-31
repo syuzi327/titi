@@ -1,0 +1,45 @@
+name: ラジ父 お題チェック
+
+on:
+  schedule:
+    # GitHub ActionsのcronはUTC。JST = UTC+9
+    - cron: '0 23 * * *'  #  8:00 JST
+    - cron: '0  3 * * *'  # 12:00 JST
+    - cron: '0  8 * * *'  # 17:00 JST
+    - cron: '0 12 * * *'  # 21:00 JST
+  workflow_dispatch: # 手動実行ボタン（テスト用）
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # キャッシュから前回確認済みのポストIDを復元する
+      # restore-keys で「tochan-last-id-」から始まる最新のキャッシュを取得
+      - name: キャッシュ復元
+        uses: actions/cache/restore@v4
+        with:
+          path: last_tweet_id.txt
+          key: tochan-last-id-${{ github.run_id }}
+          restore-keys: tochan-last-id-
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install requests
+
+      - name: お題チェック & Discord通知
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python check_tochan.py
+
+      # 実行後、更新されたIDをキャッシュに保存する
+      # キーにrun_idを使うことで毎回新しいキャッシュとして保存し、上書きの制限を回避
+      - name: キャッシュ保存
+        uses: actions/cache/save@v4
+        with:
+          path: last_tweet_id.txt
+          key: tochan-last-id-${{ github.run_id }}
