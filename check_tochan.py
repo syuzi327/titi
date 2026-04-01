@@ -45,9 +45,9 @@ def parse_posts(rss_text):
             continue
         post_id = m.group(1)
 
-        # descriptionはHTMLなのでタグを除去してテキストだけ取り出す
-        text = re.sub(r"<[^>]+>", "", description).strip()
-        text = re.sub(r"\s+", " ", text)
+        # descriptionはHTMLなのでbrを改行に変換してからタグを除去
+        text = re.sub(r"<br\s*/?>", "\n", description, flags=re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", "", text).strip()
 
         canonical_link = f"https://x.com/{USERNAME}/status/{post_id}"
         posts.append({"id": post_id, "text": text, "link": canonical_link})
@@ -67,7 +67,7 @@ def write_last_id(post_id):
 
 
 def send_discord(text, link):
-    message = {"content": f"{text}\n{link}"}
+    message = {"content": text}
     r = requests.post(DISCORD_WEBHOOK_URL, json=message)
     r.raise_for_status()
 
