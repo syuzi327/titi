@@ -23,6 +23,11 @@ def fetch_rss():
             url = f"https://{instance}/{USERNAME}/rss"
             r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
             if r.status_code == 200:
+                try:
+                    ET.fromstring(r.text)
+                except ET.ParseError as e:
+                    print(f"{instance} XMLパースエラー: {e}")
+                    continue
                 print(f"取得成功: {instance}")
                 return r.text
             print(f"{instance} ステータス {r.status_code}")
@@ -48,6 +53,8 @@ def parse_posts(rss_text):
         # descriptionはHTMLなのでbrを改行に変換してからタグを除去
         text = re.sub(r"<br\s*/?>", "\n", description, flags=re.IGNORECASE)
         text = re.sub(r"<[^>]+>", "", text).strip()
+        # 連続する改行を1つにまとめる
+        text = re.sub(r"\n{2,}", "\n", text)
 
         canonical_link = f"https://x.com/{USERNAME}/status/{post_id}"
         posts.append({"id": post_id, "text": text, "link": canonical_link})
@@ -103,8 +110,8 @@ def main():
         print("新しいポストなし")
         return
 
-    # 「今週のお題は」を含むものだけ通知
-    matched = [p for p in new_posts if "今週のお題は" in p["text"]]
+    # 「今週のお題は」または「今週分のメール締切は」を含むものだけ通知
+    matched = [p for p in new_posts if "今週のお題は" in p["text"] or "今週分のメール締切は" in p["text"]]
 
     for post in reversed(matched):  # 古い順に通知
         print(f"お題発見: {post['text'][:60]}...")
