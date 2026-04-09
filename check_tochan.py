@@ -23,13 +23,14 @@ def fetch_rss():
             url = f"https://{instance}/{USERNAME}/rss"
             r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
             if r.status_code == 200:
+                text = r.text.lstrip("\ufeff").strip()
                 try:
-                    ET.fromstring(r.text)
+                    ET.fromstring(text)
                 except ET.ParseError as e:
                     print(f"{instance} XMLパースエラー: {e}")
                     continue
                 print(f"取得成功: {instance}")
-                return r.text
+                return text
             print(f"{instance} ステータス {r.status_code}")
         except Exception as e:
             print(f"{instance} 失敗: {e}")
